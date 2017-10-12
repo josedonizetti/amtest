@@ -5,18 +5,17 @@ import (
 	"github.com/josedonizetti/amtest"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
-	"strings"
 	"time"
 )
 
 var (
 	app    = kingpin.New("amtest", "A command-line to create alerts on Alertmanager")
-	amUrls = app.Flag("amurl", "Alertmanager URLs").Short('u').Default("http://127.0.0.1:9093").String()
+	amUrls = app.Flag("amurl", "Alertmanager URLs").Short('u').Default("http://127.0.0.1:9093").Strings()
 
 	create        = app.Command("create", "Create an alert")
 	amName        = create.Flag("name", "Alert name").Short('n').Required().String()
-	amLabels      = create.Flag("labels", "Alert labels").Short('l').String()
-	amAnnotations = create.Flag("annotations", "Alert annotations").Short('a').String()
+	amLabels      = create.Flag("labels", "Alert labels").Short('l').StringMap()
+	amAnnotations = create.Flag("annotations", "Alert annotations").Short('a').StringMap()
 	startTime     = create.Flag("starttime", "Start time").Short('s').Bool()
 	endTime       = create.Flag("endtime", "End time").Short('e').Bool()
 )
@@ -28,19 +27,13 @@ func main() {
 			"alertname": *amName,
 		}
 
-		if *amLabels != "" {
-			for _, label := range strings.Split(*amLabels, ",") {
-				arr := strings.Split(label, ":")
-				labels[arr[0]] = arr[1]
-			}
+		for k, v := range *amLabels {
+			labels[k] = v
 		}
 
 		annotations := make(amtest.LabelSet)
-		if *amAnnotations != "" {
-			for _, annotation := range strings.Split(*amAnnotations, ",") {
-				arr := strings.Split(annotation, ":")
-				annotations[arr[0]] = arr[1]
-			}
+		for k, v := range *amAnnotations {
+			annotations[k] = v
 		}
 
 		alert := amtest.Alert{
@@ -57,7 +50,7 @@ func main() {
 			alert.StartsAt = time.Now()
 		}
 
-		for _, url := range strings.Split(*amUrls, ",") {
+		for _, url := range *amUrls {
 			test := amtest.NewAmTest(url)
 			err := test.Create(alert)
 			fmt.Printf("%v\n", err)
