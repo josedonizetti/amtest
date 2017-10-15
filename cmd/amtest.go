@@ -41,10 +41,8 @@ func main() {
 			Annotations: annotations,
 		}
 
-		if *startTime && *endTime {
+		if *endTime {
 			alert.StartsAt = time.Now()
-			alert.EndsAt = time.Now()
-		} else if !*startTime && *endTime {
 			alert.EndsAt = time.Now()
 		} else {
 			alert.StartsAt = time.Now()
@@ -53,7 +51,9 @@ func main() {
 		for _, url := range *amUrls {
 			test := amtest.NewAmTest(url)
 			err := test.Create(alert)
-			fmt.Printf("%v\n", err)
+			if err != nil {
+				fmt.Printf("%v\n", err)
+			}
 		}
 	}
 

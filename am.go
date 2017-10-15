@@ -37,6 +37,10 @@ func (amt *AmTest) Create(alert Alert) error {
 		return err
 	}
 
-	fmt.Println(res)
+	if res.StatusCode == http.StatusOK {
+		fmt.Println("Alert created")
+	} else {
+		fmt.Println("Server returned %d", res.StatusCode)
+	}
 	return nil
 }
