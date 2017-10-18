@@ -16,6 +16,7 @@ var (
 	amName        = create.Flag("name", "Alert name").Short('n').Required().String()
 	amLabels      = create.Flag("labels", "Alert labels").Short('l').StringMap()
 	amAnnotations = create.Flag("annotations", "Alert annotations").Short('a').StringMap()
+	generatorUrl  = create.Flag("generatorUrl", "Generator URL").Short('g').String()
 	startTime     = create.Flag("starttime", "Start time").Short('s').Bool()
 	endTime       = create.Flag("endtime", "End time").Short('e').Bool()
 )
@@ -37,8 +38,9 @@ func main() {
 		}
 
 		alert := amtest.Alert{
-			Labels:      labels,
-			Annotations: annotations,
+			Labels:       labels,
+			Annotations:  annotations,
+			GeneratorURL: *generatorUrl,
 		}
 
 		if *endTime {
