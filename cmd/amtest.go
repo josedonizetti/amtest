@@ -19,6 +19,9 @@ var (
 	generatorUrl  = create.Flag("generatorUrl", "Generator URL").Short('g').String()
 	startTime     = create.Flag("starttime", "Start time").Short('s').Bool()
 	endTime       = create.Flag("endtime", "End time").Short('e').Bool()
+
+	resolve        = app.Command("resolve", "Create an alert")
+	amResolvedName = resolve.Flag("name", "Alert name").Short('n').Required().String()
 )
 
 func main() {
@@ -53,6 +56,20 @@ func main() {
 		for _, url := range *amUrls {
 			test := amtest.NewAmTest(url)
 			err := test.Create(alert)
+			if err != nil {
+				fmt.Printf("%v\n", err)
+			}
+		}
+	case resolve.FullCommand():
+		for _, url := range *amUrls {
+			test := amtest.NewAmTest(url)
+			alert, err := test.GetAlert(*amResolvedName)
+			if err != nil {
+				fmt.Printf("%v\n", err)
+				return
+			}
+
+			test.Resolve(alert)
 			if err != nil {
 				fmt.Printf("%v\n", err)
 			}
