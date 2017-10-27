@@ -5,6 +5,7 @@ import (
 	"github.com/josedonizetti/amtest"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -53,13 +54,21 @@ func main() {
 			alert.StartsAt = time.Now()
 		}
 
+		var wg sync.WaitGroup
+		wg.Add(len(*amUrls))
 		for _, url := range *amUrls {
-			test := amtest.NewAmTest(url)
-			err := test.Create(alert)
-			if err != nil {
-				fmt.Printf("%v\n", err)
-			}
+			go func(u string) {
+				test := amtest.NewAmTest(u)
+				err := test.Create(alert)
+				if err != nil {
+					fmt.Printf("%v\n", err)
+				}
+
+				wg.Done()
+			}(url)
 		}
+
+		wg.Wait()
 	case resolve.FullCommand():
 		for _, url := range *amUrls {
 			test := amtest.NewAmTest(url)
