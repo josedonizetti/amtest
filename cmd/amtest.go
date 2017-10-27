@@ -12,9 +12,14 @@ import (
 	"time"
 )
 
+const (
+	defaultAmURL    = "http://localhost:9093"
+	defaultInterval = "1m"
+)
+
 var (
 	app    = kingpin.New("amtest", "A command-line to create alerts on Alertmanager")
-	amUrls = app.Flag("amurl", "Alertmanager URLs").Short('u').Default("http://127.0.0.1:9093").Strings()
+	amUrls = app.Flag("amurl", "Alertmanager URLs").Short('u').Default(defaultAmURL).Strings()
 
 	create         = app.Command("create", "Create an alert")
 	amName         = create.Flag("name", "Alert name").Short('n').Required().String()
@@ -24,7 +29,7 @@ var (
 	startTime      = create.Flag("starttime", "Start time").Short('s').Bool()
 	endTime        = create.Flag("endtime", "End time").Short('e').Bool()
 	repeat         = create.Flag("repeat", "Send the alert repeatedly based on repeat-interval").Short('r').Bool()
-	repeatInterval = create.Flag("repeat-interval", "Interval to repeat alerts").Default("1m").Short('i').Duration()
+	repeatInterval = create.Flag("repeat-interval", "Interval to repeat alerts").Default(defaultInterval).Short('i').Duration()
 
 	resolve        = app.Command("resolve", "Create an alert")
 	amResolvedName = resolve.Flag("name", "Alert name").Short('n').Required().String()
