@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/josedonizetti/amtest"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -13,19 +16,33 @@ var (
 	app    = kingpin.New("amtest", "A command-line to create alerts on Alertmanager")
 	amUrls = app.Flag("amurl", "Alertmanager URLs").Short('u').Default("http://127.0.0.1:9093").Strings()
 
-	create        = app.Command("create", "Create an alert")
-	amName        = create.Flag("name", "Alert name").Short('n').Required().String()
-	amLabels      = create.Flag("labels", "Alert labels").Short('l').StringMap()
-	amAnnotations = create.Flag("annotations", "Alert annotations").Short('a').StringMap()
-	generatorUrl  = create.Flag("generatorUrl", "Generator URL").Short('g').String()
-	startTime     = create.Flag("starttime", "Start time").Short('s').Bool()
-	endTime       = create.Flag("endtime", "End time").Short('e').Bool()
+	create         = app.Command("create", "Create an alert")
+	amName         = create.Flag("name", "Alert name").Short('n').Required().String()
+	amLabels       = create.Flag("labels", "Alert labels").Short('l').StringMap()
+	amAnnotations  = create.Flag("annotations", "Alert annotations").Short('a').StringMap()
+	generatorUrl   = create.Flag("generatorUrl", "Generator URL").Short('g').String()
+	startTime      = create.Flag("starttime", "Start time").Short('s').Bool()
+	endTime        = create.Flag("endtime", "End time").Short('e').Bool()
+	repeat         = create.Flag("repeat", "Send the alert repeatedly based on repeat-interval").Short('r').Bool()
+	repeatInterval = create.Flag("repeat-interval", "Interval to repeat alerts").Default("1m").Short('i').Duration()
 
 	resolve        = app.Command("resolve", "Create an alert")
 	amResolvedName = resolve.Flag("name", "Alert name").Short('n').Required().String()
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	term := make(chan os.Signal)
+	signal.Notify(term, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-term
+		fmt.Println("closing")
+		cancel()
+	}()
+
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	case create.FullCommand():
 		labels := amtest.LabelSet{
@@ -56,16 +73,29 @@ func main() {
 
 		var wg sync.WaitGroup
 		wg.Add(len(*amUrls))
+
 		for _, url := range *amUrls {
-			go func(u string) {
+			go func(ctx context.Context, u string) {
 				test := amtest.NewAmTest(u)
 				err := test.Create(alert)
 				if err != nil {
 					fmt.Printf("%v\n", err)
 				}
 
+				for *repeat {
+					select {
+					case <-ctx.Done():
+						*repeat = false
+					case <-time.After(*repeatInterval):
+						err := test.Create(alert)
+						if err != nil {
+							fmt.Printf("%v\n", err)
+						}
+					}
+				}
+
 				wg.Done()
-			}(url)
+			}(ctx, url)
 		}
 
 		wg.Wait()
