@@ -39,7 +39,7 @@ func main() {
 
 	go func() {
 		<-term
-		fmt.Println("closing")
+		fmt.Println("Stopping...")
 		cancel()
 	}()
 
